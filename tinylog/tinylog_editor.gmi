@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+
+import csv
+import os
+import datetime
+import requests
+
+################ EDIT THE FOLLOWING TWO LINES: #############
+allowedCert = "afefad5858768766..." # <------ client hash goes here, length should be 64 characters
+thisSite = "gemini://yourCapsule.example.com"
+############################################################
+
+csvFile = "tinylog.csv"
+tinyLogPage = "tinylog.gmi"
+thisPage = "tinylog/tinylog_editor.gmi"
+temp_csv = "newlog_temp.csv"
+
+# get identity hash from client and verify that it matches
+# the allowed identity, otherwise quit after returning a code 6x
+TLS_CLIENT_HASH = os.getenv('TLS_CLIENT_HASH')
+
+if (TLS_CLIENT_HASH is None):
+    print("60 text/gemini; charset=utf-8", end = "\r\n")
+    quit()
+elif (TLS_CLIENT_HASH != allowedCert):
+    print("61 Cert not authorized\r\n")
+    quit()
+
+newLog = os.getenv('QUERY_STRING')
+
+# prompt user for the new entry if one hasn't been
+# entered yet (or user has opted to discard & start over)
+if (newLog == None) or (newLog == "edit"):
+    print ("10 Add a tinylog entry:\r\n")
+
+# if the query string is 'yes' then add the 
+# temporarily stored new entry to the csv file
+elif (newLog == "yes"):
+
+    fullLog = []
+
+    temp_csvOpen = open(temp_csv, 'r+')
+    temp_csvReader = csv.reader(temp_csvOpen, delimiter='^')
+
+    for line in temp_csvReader:
+        fullLog.append(line)
+
+    with open(csvFile, 'r+') as csvFileOpen:
+        csvReader = csv.reader(csvFileOpen, delimiter='^')
+        for row in csvReader:
+            fullLog.append(row)
+
+    with open(csvFile, "w") as csvFileOpen:
+        csvWriter = csv.writer(csvFileOpen, delimiter='^')
+        for row in fullLog:
+            csvWriter.writerow(row)
+
+    temp_csvOpen.truncate(0)
+    temp_csvOpen.close()
+
+    print ("20 text/gemini; charset=utf-8\r\n")
+    print ("Sent!\n")
+    print ("=> " + thisSite + tinyLogPage + " back to tinylog page")
+
+# if the query string is 'no' then don't add the new entry
+elif (newLog == "no"):
+    print ("20 text/gemini; charset=utf-8\r\n")
+    print ("Discarded.\n")
+    print ("=> " + thisSite + tinyLogPage + " back to tinylog page")
+
+# if the query string is not 'yes', 'no', 'edit' or empty,
+# then assume it's the new log text, save it to the temporary
+# csv, and ask user if entry is OK using 3 link options
+else:
+    newLogParsed = requests.utils.unquote(newLog)
+
+    newEntry = []
+    timeStamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M%ZUTC")
+    newEntry.append(timeStamp)
+
+    logSplit = newLogParsed.split('\n')
+    print ("20 text/gemini; charset=utf-8\r\n")
+    print ("You have entered:\n")
+
+    for pieceOfLog in logSplit:
+        newEntry.append(f"{pieceOfLog}")
+        print (f"{pieceOfLog}")
+
+    print ("\n")
+
+    temp_csvOpen = open(temp_csv, "r+")
+    temp_csvOpen.truncate(0)
+    temp_csvOpen.close()
+
+    with open(temp_csv, 'w') as temp_csvOpen:
+        csvWriter = csv.writer(temp_csvOpen, delimiter='^')
+        csvWriter.writerow(newEntry)
+
+    print (f"csv version: {newEntry}")
+
+    print ("\nSend?\n")
+    print ("=> " + thisSite + thisPage + "?yes SEND")
+    print ("=> " + thisSite + thisPage + "?edit START OVER")
+    print ("=> " + thisSite + thisPage + "?no DISCARD")

@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+import csv
+import os
+
+print ("20 text/gemini; charset=utf-8\r\n")
+
+# The headings below follow the 'optional header information' in the
+# tinylog specification found at https://codeberg.org/bacardi55/gemini-tinylog-rfc
+
+########## EDIT THESE: ###########
+print ("# Your TinyLog Title\n")
+print ("a tinylog by: @YourName")
+print ("=> gemini://yourCapsule.example.com/tinylog/tinylog_editor.gmi add an entry\n")
+##################################
+
+csvFile = "tinylog/tinylog.csv"
+
+with open(csvFile, 'r') as csvFileOpen:
+    csvReader = csv.reader(csvFileOpen, delimiter='^')
+    for row in csvReader:
+        eachLog = []
+        for item in row:
+            if item:
+                eachLog.append(item)
+            else:
+                eachLog.append(' ')
+
+        logDate = eachLog[0]
+        del(eachLog[0])
+        print ("## " + logDate)
+        for item in eachLog:
+            print(item)
+        print ("\n")    
+
