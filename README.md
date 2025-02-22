@@ -1,3 +1,5 @@
+## This repository is now hosted on [Codeberg](https://codeberg.org/patatas/gemini-tinylog) and has added pagination ;)
+
 # gemini-tinylog
 Simple tinylog CGI script in Python, for use with the gmCapsule gemini protocol server.
 
